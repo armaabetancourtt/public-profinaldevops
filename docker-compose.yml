@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # MongoDB 
+  mongodb:
+    image: mongo:6-jammy
+    container_name: vuelos-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: vuelos
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - vuelos-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vuelos-backend
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      MONGO_URI: mongodb://mongodb:27017/vuelos
+      NODE_ENV: production
+    volumes:
+      - app_logs:/app/logs
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - vuelos-net
+
+  # Frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vuelos-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - vuelos-net
+
+volumes:
+  mongodb_data:
+    driver: local
+  app_logs:
+    driver: local
+
+networks:
+  vuelos-net:
+    driver: bridge

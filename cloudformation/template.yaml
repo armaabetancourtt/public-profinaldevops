@@ -1,0 +1,187 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Infraestructura para Aeroméxico - Sistema de Reservas de Vuelos.
+  Crea una instancia EC2 y un bucket S3 para la aplicación.
+
+# PARÁMETROS
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues: [t2.micro, t2.small, t2.medium]
+    Description: Tipo de instancia EC2 (t2.micro es elegible para Free Tier)
+
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Nombre del Key Pair de EC2 para acceso SSH
+
+  BucketName:
+    Type: String
+    Default: aeromex-backups-storage
+    Description: Nombre del bucket S3 (debe ser único globalmente)
+
+# RECURSOS
+Resources:
+
+  # S3 Bucket 
+  AeroMexS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      # Organización del bucket:
+      #   backups/mongodb/    backups de base de datos
+      #   backups/logs/       archivos de logs comprimidos
+      #   static/             archivos estáticos opcionales
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: EliminarBackupsViejos
+            Status: Enabled
+            ExpirationInDays: 30   # Eliminar backups después de 30 días
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Project
+          Value: AeroMex
+        - Key: Environment
+          Value: Production
+
+  # ── Security Group ───────────────────────────────────────────────────────────
+  # CONFIGURACIÓN DE SECURITY GROUPS:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Para que la aplicación sea accesible desde el navegador se deben abrir
+  # los siguientes puertos en el Security Group:
+  #
+  #   Puerto 22   (SSH)     Acceso remoto al servidor. En producción LIMITAR
+  #                          solo a mi IP: CidrIp: IP/32
+  #
+  #   Puerto 8080 (HTTP)  → Frontend (nginx) – acceso público desde el navegador
+  #
+  #   Puerto 3000 (API)   → Backend Express
+  #                          directamente. En producción, el frontend proxy
+  #                          internamente al backend (no abrir este puerto).
+  #
+  #   Puerto 5173 (Vite)  → Solo para desarrollo local, NO abrir en producción.
+  #
+  #   POR QUÉ NO USAR 0.0.0.0/0 EN PRODUCCIÓN:
+  #   Usar 0.0.0.0/0 expone el puerto a INTERNET COMPLETO, lo que permite
+  #   ataques de fuerza bruta (SSH), escaneo de puertos, y acceso no autorizado.
+  #   En producción siempre limitar SSH a tu IP, y usar HTTPS con certificado.
+  # ─────────────────────────────────────────────────────────────────────────────
+  AeroMexSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group para Aeroméxico controla acceso a la aplicacion
+      SecurityGroupIngress:
+        # SSH – CAMBIAR 0.0.0.0/0 por tu IP en produccion: TU_IP/32
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: "SSH - Restringir a IP especifica en produccion"
+
+        # Frontend (nginx) – acceso publico al sitio web
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+          Description: "Frontend nginx - acceso publico"
+
+        # HTTP estandar (opcional, para redirigir a 8080)
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: "HTTP estandar"
+      Tags:
+        - Key: Project
+          Value: AeroMex
+
+  # EC2 Instance 
+  AeroMexEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      ImageId: ami-0c02fb55956c7d316  # Amazon Linux 2 (us-east-1) – actualizar según región
+      SecurityGroups:
+        - !Ref AeroMexSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp2
+      # UserData: instalación automática al lanzar la instancia
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          # Actualizar sistema
+          yum update -y
+
+          # Instalar Git
+          yum install -y git
+
+          # Instalar Docker
+          amazon-linux-extras install docker -y
+          service docker start
+          usermod -aG docker ec2-user
+          chkconfig docker on
+
+          # Instalar Docker Compose
+          curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose
+          ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+          # Log de instalación
+          echo "[$(date)] Instancia EC2 configurada correctamente" >> /var/log/aeromex-setup.log
+
+      Tags:
+        - Key: Name
+          Value: AeroMex-Server
+        - Key: Project
+          Value: AeroMex
+        - Key: Environment
+          Value: Production
+
+  #  Elastic IP (IP fija) 
+  AeroMexElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref AeroMexEC2Instance
+      Tags:
+        - Key: Project
+          Value: AeroMex
+
+# OUTPUTS
+Outputs:
+  EC2PublicIP:
+    Description: IP pública de la instancia EC2
+    Value: !Ref AeroMexElasticIP
+    Export:
+      Name: AeroMex-EC2-PublicIP
+
+  EC2PublicDNS:
+    Description: DNS público de la instancia EC2
+    Value: !GetAtt AeroMexEC2Instance.PublicDnsName
+
+  AppURL:
+    Description: URL de acceso a la aplicación
+    Value: !Sub "http://${AeroMexElasticIP}:8080"
+
+  S3BucketName:
+    Description: Nombre del bucket S3
+    Value: !Ref AeroMexS3Bucket
+    Export:
+      Name: AeroMex-S3-Bucket
+
+  S3BucketARN:
+    Description: ARN del bucket S3
+    Value: !GetAtt AeroMexS3Bucket.Arn
+
+  SSHCommand:
+    Description: Comando para conectarse por SSH
+    Value: !Sub "ssh -i ${KeyPairName}.pem ec2-user@${AeroMexElasticIP}"
