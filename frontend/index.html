@@ -554,6 +554,33 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* Colores según el estado */
+    .status-badge.confirmed {
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    .status-badge.pending {
+      background: rgba(234, 179, 8, 0.1);
+      color: #eab308;
+      border: 1px solid rgba(234, 179, 8, 0.2);
+    }
+
+    .status-badge.cancelled {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
     .error-msg {
       background: rgba(239,68,68,0.08);
       border: 1px solid rgba(239,68,68,0.2);
@@ -575,16 +602,69 @@
     .bookings-table tr:hover td { background: rgba(56,189,248,0.025); }
 
     
-    @media (max-width: 700px) {
-      header { padding: 0 20px; }
-      .nav-badge { display: none; }
-      .destinations-grid { grid-template-columns: 1fr; }
-      .search-card { padding: 24px 20px; }
-      .search-row { grid-template-columns: 1fr; }
-      .flight-card { grid-template-columns: 1fr 1fr; }
-      .flight-price-col { text-align: left; }
-      .airline-block { flex-direction: row; }
+  @media (max-width: 700px) {
+    header { padding: 0 20px; position: relative; }
+    .nav-badge { display: none; }
+    
+    nav {
+      display: none;
+      position: absolute;
+      top: 66px;
+      left: 0;
+      right: 0;
+      background: var(--bg2);
+      flex-direction: column;
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      gap: 20px;
     }
+
+    header:hover nav {
+      display: flex;
+    }
+
+    header::after {
+      content: '☰';
+      font-size: 24px;
+      color: var(--cyan);
+      cursor: pointer;
+    }
+
+    .destinations-grid { grid-template-columns: 1fr; }
+    .search-card { padding: 24px 20px; }
+    .search-row { grid-template-columns: 1fr; }
+    .flight-card { grid-template-columns: 1fr 1fr; }
+    .flight-price-col { text-align: left; }
+    .airline-block { flex-direction: row; }
+
+    .extra-section > .section-container > div {
+      grid-template-columns: 1fr !important;
+      text-align: center;
+    }
+
+    .extra-section div[style*="grid-template-columns: 1fr 1fr"] {
+      grid-template-columns: 1fr !important;
+      gap: 15px;
+    }
+
+    form .search-row {
+      grid-template-columns: 1fr !important;
+      gap: 15px;
+    }
+
+    form .btn-search {
+      width: 100%;
+    }
+
+    .benefits-row {
+      grid-template-columns: 1fr !important;
+      gap: 30px;
+    }
+
+    .hero-tag {
+      margin: 0 auto 16px auto;
+    }
+  }
   </style>
 </head>
 <body>
@@ -771,6 +851,158 @@
 
 </section>
 
+  
+  <!-- BOOKINGS TAB -->
+    <section class="results-section" v-if="tab==='bookings'">
+        <h3 style="font-family:'Sora',sans-serif;font-size:1.45rem;font-weight:700;margin-bottom:28px;letter-spacing:-0.3px;margin-top: 44px;">Mis Reservas</h3>
+        <div class="loading-wrap" v-if="loadingBookings"><div class="spinner"></div></div>
+        <div v-else-if="bookings.length > 0">
+          <table class="bookings-table">
+            <thead>
+              <tr>
+                <th>Vuelo</th><th>Ruta</th><th>Fecha</th><th>Aerolínea</th><th>Pasajero</th><th>Precio</th><th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="b in bookings" :key="b._id">
+                <td style="color:var(--cyan);font-weight:600;font-size:0.8rem;letter-spacing:0.5px">{{ b.flightId }}</td>
+                <td>{{ b.origin }} → {{ b.destination }}</td>
+                <td style="color:var(--muted)">{{ b.date }}</td>
+                <td>{{ b.airline }}</td>
+                <td>
+                  <div style="font-weight:500">{{ b.passenger.name }}</div>
+                  <div style="color:var(--muted);font-size:0.78rem">{{ b.passenger.email }}</div>
+                </td>
+                <td style="font-family:'Sora',sans-serif;font-weight:700">$ {{ b.price?.toLocaleString('es-MX') }}</td>
+                <td>
+                  <span :class="['status-badge', b.status || 'confirmed']">
+                    {{ (b.status || 'confirmed').toUpperCase() }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table> 
+        </div>
+        <div class="empty-state" v-else>
+          <div class="empty-icon"><i data-lucide="clipboard-list"></i></div>
+          <h4>Sin reservas aún</h4>
+          <p>Haz tu primera reserva en la sección de vuelos.</p>
+        </div>
+    </section>
+
+    <!-- SECCIÓN PRODUCTOS Y SERVICIOS -->
+  <section class="extra-section">
+    <div class="results-header">
+      <h3>Nuestros Servicios y Destinos</h3>
+      <span class="results-count">Experiencia Premium</span>
+    </div>
+
+    <div class="destinations-grid">
+      <!-- Tarjeta 1 -->
+      <div class="dest-card">
+        <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=800" alt="Destinos">
+        <div class="dest-info">
+          <h4>Rutas Internacionales</h4>
+          <p>Conectamos a México con el mundo.</p>
+        </div>
+      </div>
+      <!-- Tarjeta 2 -->
+      <div class="dest-card">
+        <img src="https://images.pexels.com/photos/625409/pexels-photo-625409.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Clase Premier">
+        <div class="dest-info">
+          <h4>Clase Premier</h4>
+          <p>El máximo confort en las nubes.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN SOBRE NOSOTROS -->
+<section class="extra-section">
+  <div class="section-container">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;">
+      
+      <!-- Texto Informativo -->
+      <div>
+        <span class="hero-tag" style="margin-bottom: 16px;">Nuestra Historia</span>
+        <h2 style="font-family: 'Sora'; font-size: 2rem; margin-bottom: 20px;">La Aerolínea Bandera de <span class="gradient-word">México</span></h2>
+        <p style="color: var(--muted); line-height: 1.8; margin-bottom: 20px;">
+          Fundada en 1934, <strong>Aeroméxico</strong> ha conectado a generaciones de viajeros con el mundo. Somos más que una aerolínea; somos el puente cultural que une a México con más de 90 destinos en tres continentes.
+        </p>
+        <p style="color: var(--muted); line-height: 1.8;">
+          Nuestra misión es llevar la hospitalidad mexicana a cada rincón del planeta, operando una de las flotas más modernas y tecnológicas de la industria, incluyendo el revolucionario <em>Boeing 787 Dreamliner</em>.
+        </p>
+      </div>
+
+      <!-- Estadísticas Rápidas -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div style="background: var(--bg3); padding: 25px; border-radius: 18px; border: 1px solid var(--border); text-align: center;">
+          <h3 style="color: var(--cyan); font-size: 2rem;">90+</h3>
+          <p style="font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">Destinos</p>
+        </div>
+        <div style="background: var(--bg3); padding: 25px; border-radius: 18px; border: 1px solid var(--border); text-align: center;">
+          <h3 style="color: var(--cyan); font-size: 2rem;">1934</h3>
+          <p style="font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">Fundación</p>
+        </div>
+        <div style="background: var(--bg3); padding: 25px; border-radius: 18px; border: 1px solid var(--border); text-align: center;">
+          <h3 style="color: var(--cyan); font-size: 2rem;">100+</h3>
+          <p style="font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">Aeronaves</p>
+        </div>
+        <div style="background: var(--bg3); padding: 25px; border-radius: 18px; border: 1px solid var(--border); text-align: center;">
+          <h3 style="color: var(--cyan); font-size: 2rem;">SkyTeam</h3>
+          <p style="font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">Alianza Global</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+  <!-- FORMULARIO DE CONTACTO SIMULADO -->
+  <section class="extra-section" style="padding-top: 0;">
+    <div class="search-card" style="max-width: 100%;">
+      <div class="search-card-header">
+        <h2>¿Tienes dudas? Contáctanos</h2>
+      </div>
+      <form @submit.prevent="enviarFormulario">
+        <div class="search-row" style="grid-template-columns: 1fr 1fr 1fr auto;">
+          <div class="field">
+            <label>Nombre Completo</label>
+            <div class="field-wrap">
+              <i data-lucide="user" class="field-icon"></i>
+              <input type="text" placeholder="Tu nombre" required>
+            </div>
+          </div>
+          <div class="field">
+            <label>Correo Electrónico</label>
+            <div class="field-wrap">
+              <i data-lucide="mail" class="field-icon"></i>
+              <input type="email" placeholder="correo@ejemplo.com" required>
+            </div>
+          </div>
+          <div class="field">
+            <label>Asunto</label>
+            <div class="field-wrap">
+              <i data-lucide="message-square" class="field-icon"></i>
+              <input type="text" placeholder="Duda sobre vuelo">
+            </div>
+          </div>
+          <button type="submit" class="btn-search">
+            Enviar Mensaje
+          </button>
+        </div>
+      </form>
+      
+      <!-- Mensaje de éxito simulado -->
+      <div v-if="formEnviado" class="success-banner" style="margin-top: 20px;">
+        <div class="success-icon">✨</div>
+        <div class="success-text">
+          <strong>¡Mensaje recibido!</strong>
+          <span>Un asesor de Aeroméxico te contactará pronto.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="extra-section benefits-bg">
     <div class="section-container">
       <div class="benefits-row">
@@ -794,36 +1026,7 @@
 </div>
   </section>
 
-  <!-- BOOKINGS TAB -->
-  <section class="results-section" v-if="tab==='bookings'">
-    <h3 style="font-family:'Sora',sans-serif;font-size:1.45rem;font-weight:700;margin-bottom:28px;letter-spacing:-0.3px;margin-top: 44px;">Mis Reservas</h3>
-    <div class="loading-wrap" v-if="loadingBookings"><div class="spinner"></div></div>
-    <div v-else-if="bookings.length > 0">
-      <table class="bookings-table">
-        <thead><tr>
-          <th>Vuelo</th><th>Ruta</th><th>Fecha</th><th>Aerolínea</th><th>Pasajero</th><th>Precio</th>
-        </tr></thead>
-        <tbody>
-          <tr v-for="b in bookings" :key="b._id">
-            <td style="color:var(--cyan);font-weight:600;font-size:0.8rem;letter-spacing:0.5px">{{ b.flightId }}</td>
-            <td>{{ b.origin }} → {{ b.destination }}</td>
-            <td style="color:var(--muted)">{{ b.date }}</td>
-            <td>{{ b.airline }}</td>
-            <td>
-              <div style="font-weight:500">{{ b.passenger.name }}</div>
-              <div style="color:var(--muted);font-size:0.78rem">{{ b.passenger.email }}</div>
-            </td>
-            <td style="font-family:'Sora',sans-serif;font-weight:700">$ {{ b.price?.toLocaleString('es-MX') }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="empty-state" v-else>
-      <div class="empty-icon"><i data-lucide="clipboard-list"></i></div>
-      <h4>Sin reservas aún</h4>
-      <p>Haz tu primera reserva en la sección de vuelos.</p>
-    </div>
-  </section>
+
 
   <!-- BOOKING MODAL -->
   <div class="modal-overlay" v-if="modal.open" @click.self="modal.open=false">
@@ -879,6 +1082,8 @@
 
 <script>
 const { createApp } = Vue;
+const API = 'http://localhost:3000';
+
 createApp({
   data() {
     const today = new Date();
@@ -893,19 +1098,28 @@ createApp({
       flights: [], bookings: [],
       loading: false, loadingBookings: false,
       hasSearched: false, searchError: '',
-      modal: { open: false, flight: null, form: { name: '', email: '' }, booking: false, success: false, error: '' }
+      modal: { open: false, flight: null, form: { name: '', email: '' }, booking: false, success: false, error: '' },
+      // Añadido para el formulario de contacto
+      formEnviado: false 
     };
   },
 
   mounted() {
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
   },
 
   updated() {
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
   },
 
   methods: {
+    // Método para el formulario de contacto simulado
+    enviarFormulario() {
+      this.formEnviado = true;
+      setTimeout(() => {
+        this.formEnviado = false;
+      }, 4000);
+    },
     async searchFlights() {
       this.searchError = ''; this.loading = true; this.hasSearched = true; this.flights = [];
       const params = new URLSearchParams();
@@ -913,7 +1127,7 @@ createApp({
       if (this.search.destination) params.append('destination', this.search.destination);
       if (this.search.date) params.append('date', this.search.date);
       try { 
-        const res = await fetch(`http://localhost:3000/api/flights?${params}`);
+        const res = await fetch(`${API}/api/flights?${params}`);
         if (!res.ok) throw new Error('Error en el servidor');
         const data = await res.json();
         this.flights = data.flights || [];
@@ -930,7 +1144,7 @@ createApp({
       }
       this.modal.error = ''; this.modal.booking = true;
       try {
-        const res = await fetch('http://localhost:3000/api/book', {
+        const res = await fetch(`${API}/api/book`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -951,13 +1165,12 @@ createApp({
     async loadBookings() {
       this.loadingBookings = true;
       try {
-        const res = await fetch('http://localhost:3000/api/bookings');
+        const res = await fetch(`${API}/api/bookings`);
         const data = await res.json();
         this.bookings = data.bookings || [];
       } catch { this.bookings = []; }
       finally { this.loadingBookings = false; }
     },
-
     irAReservas() {
       this.tab = 'bookings';
       setTimeout(() => this.loadBookings(), 0);

@@ -1,4 +1,4 @@
-# Actividad 2 DevOps: AeroMéxico – Sistema de Reservas de Vuelos
+# Proyecto Final DevOps: AeroMéxico – Sistema de Reservas de Vuelos
 
 Sistema full stack de reservas de vuelos desarrollado con prácticas DevOps: Docker, AWS CloudFormation, Bash y GitHub.
 
@@ -73,13 +73,13 @@ open http://localhost:8080
 
 ```bash
 # Construir y levantar
-docker compose up -d --build
+docker-compose up -d --build
 
 # Ver logs
-docker compose logs -f
+docker-compose logs -f
 
 # Detener
-docker compose down
+docker-compose down
 ```
 
 ---
@@ -91,7 +91,7 @@ docker compose down
 ```bash
 aws cloudformation create-stack \
   --stack-name aeromex-stack \
-  --template-body file://cloudformation/template.yaml \
+  --template-body file://cloudformation/aeromexico-stack.yaml \
   --parameters \
     ParameterKey=KeyPairName,ParameterValue=mi-key-pair \
     ParameterKey=BucketName,ParameterValue=mi-bucket-aeromex-unico
@@ -100,7 +100,7 @@ aws cloudformation create-stack \
 ### 2. Conectarse a la instancia EC2
 
 ```bash
-ssh -i mi-key-pair.pem ec2-user@<IP_PUBLICA_EC2>
+ssh -i vockey.pem ec2-user@<IP_PUBLICA_EC2>
 ```
 
 ### 3. Instalar dependencias en EC2
@@ -222,7 +222,7 @@ Formato:
 
 Ver logs en tiempo real:
 ```bash
-docker compose logs -f backend
+docker-compose logs -f backend
 ```
 
 ---

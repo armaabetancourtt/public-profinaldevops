@@ -48,17 +48,11 @@ fi
 # ── 2. Backup de Logs ────────────────────────────────────────────────────────
 echo -e "\n${YELLOW}[2/3] Realizando backup de logs...${NC}"
 
-LOGS_VOLUME=$(docker volume ls --format '{{.Name}}' | grep "app_logs" | head -1)
+echo -e "\n${YELLOW}[2/3] Realizando backup de logs...${NC}"
 
-if [ -n "$LOGS_VOLUME" ]; then
-    docker run --rm \
-        -v "${LOGS_VOLUME}:/logs" \
-        -v "$(pwd)/backups:/backup" \
-        alpine tar czf "/backup/logs_backup_${TIMESTAMP}.tar.gz" -C /logs .
-    echo -e "${GREEN} Backup de logs guardado en: ${LOGS_BACKUP_FILE}${NC}"
-else
-    echo -e "${RED}  Volumen de logs no encontrado. Saltando backup de logs.${NC}"
-fi
+docker exec vuelos-backend sh -c "tar czf - /app/logs" > "$LOGS_BACKUP_FILE"
+
+echo -e "${GREEN} Backup de logs guardado en: ${LOGS_BACKUP_FILE}${NC}"
 
 # ── 3. Subir a S3 (opcional) ─────────────────────────────────────────────────
 if [ "$1" = "--s3" ] && [ -n "$2" ]; then
