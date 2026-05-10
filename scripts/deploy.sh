@@ -3,23 +3,46 @@
 
 set -e
 
-echo "[AEROMEXICO] Iniciando despliegue de infraestructura local..."
+echo "[AEROMEXICO] Iniciando despliegue de infraestructura..."
 
-# 1. Actualizar sistema e instalar Docker si no existe
+# 1. Actualizar sistema e instalar dependencias
 sudo yum update -y
+
+# 2. Instalar Docker
 if ! command -v docker &> /dev/null; then
-    echo "Instalando Docker..."
-    sudo amazon-linux-extras install docker -y
-    sudo service docker start
-    sudo usermod -a -G docker ec2-user
+    echo "[AEROMEXICO] Instalando Docker..."
+    sudo yum install -y docker
+    sudo systemctl enable docker
+    sudo systemctl start docker
+    sudo usermod -aG docker ec2-user
+    echo "Docker instalado correctamente."
+else
+    echo "Docker ya está instalado."
 fi
 
-# 2. Crear estructura de directorios para logs
-echo "Creando carpetas de persistencia..."
-mkdir -p ~/app/logs
-touch ~/app/logs/app.log
+# 3. Instalar CloudWatch Agent (Vital para el monitoreo que armamos)
+if ! command -v amazon-cloudwatch-agent-ctl &> /dev/null; then
+    echo "[AEROMEXICO] Instalando Amazon CloudWatch Agent..."
+    sudo yum install -y amazon-cloudwatch-agent
+else
+    echo "CloudWatch Agent ya está instalado."
+fi
 
-# 3. Dar permisos
-sudo chmod -R 777 ~/app/logs
+# 4. Configurar Red y Volúmenes
+echo "[AEROMEXICO] Configurando red y volúmenes..."
 
-echo "Despliegue técnico completado. Listo para iniciar aplicaciones."
+# Crear red si no existe
+docker network inspect aeromexico-network >/dev/null 2>&1 || \
+docker network create aeromexico-network
+
+# Crear volumen para logs públicos (el que configuramos en el agente)
+docker volume create public-profinaldevops_public_logs >/dev/null 2>&1 || true
+
+# 5. Ajuste de permisos para Logs (Para evitar el Permission Denied)
+echo "[AEROMEXICO] Ajustando permisos de rutas de Docker para el agente..."
+sudo chmod +x /var/lib/docker /var/lib/docker/volumes 2>/dev/null || true
+
+echo "------------------------------------------------"
+echo "[AEROMEXICO] Infraestructura preparada correctamente."
+echo "IMPORTANTE: Si es la primera vez que instalas Docker, cierra sesión y vuelve a entrar."
+echo "Luego ejecuta ./start_app.sh"

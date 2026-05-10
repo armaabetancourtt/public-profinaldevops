@@ -1047,7 +1047,7 @@
 
 <script>
 const { createApp } = Vue;
-const API = 'http://localhost:3000';
+const API = '/api';
 
 createApp({
   data() {
@@ -1090,7 +1090,7 @@ createApp({
       if (this.search.destination) params.append('destination', this.search.destination);
       if (this.search.date) params.append('date', this.search.date);
       try {
-        const res = await fetch(`${API}/api/flights?${params}`);
+        const res = await fetch(`${API}/flights?${params}`);
         if (!res.ok) throw new Error('Error en el servidor');
         const data = await res.json();
         this.flights = data.flights || [];
@@ -1107,7 +1107,7 @@ createApp({
       }
       this.modal.error = ''; this.modal.booking = true;
       try {
-        const res = await fetch(`${API}/api/book`, {
+        const res = await fetch(`${API}/book`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1128,7 +1128,7 @@ createApp({
     async loadBookings() {
       this.loadingBookings = true;
       try {
-        const res = await fetch(`${API}/api/bookings`);
+        const res = await fetch(`${API}/bookings`);
         const data = await res.json();
         this.bookings = data.bookings || [];
       } catch { this.bookings = []; }

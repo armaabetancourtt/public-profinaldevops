@@ -1,18 +1,28 @@
 #!/bin/bash
 # start_app.sh - Arrancar contenedores Docker
 
-echo " [AEROMEXICO] Levantando servicios..."
+#!/bin/bash
 
-docker stop aeromexico-app mongo-db 2>/dev/null || true
-docker rm aeromexico-app mongo-db 2>/dev/null || true
+echo "[AEROMEXICO] Levantando servicios públicos..."
 
-# EJEMPLO PARA EC2 PÚBLICA (Landing Page)
-# docker run -d --name aeromexico-app -p 80:80 nginx
+docker stop publico-vuelos-frontend publico-vuelos-backend 2>/dev/null || true
+docker rm publico-vuelos-frontend publico-vuelos-backend 2>/dev/null || true
 
-# EJEMPLO PARA EC2 PRIVADA (Intranet + Mongo)
-# docker run -d --name mongo-db -p 27017:27017 mongo
+docker network create aeromexico-network 2>/dev/null || true
 
-echo "Estado de los contenedores:"
+docker run -d \
+  --name publico-vuelos-backend \
+  --network aeromexico-network \
+  -p 3000:3000 \
+  -v public-profinaldevops_public_logs:/app/logs \
+  public-profinaldevops-backend
+
+docker run -d \
+  --name publico-vuelos-frontend \
+  --network aeromexico-network \
+  -p 8080:80 \
+  public-profinaldevops-frontend
+
+echo "------------------------------------------------"
 docker ps
-
-echo "Aplicación iniciada correctamente."
+echo "------------------------------------------------"

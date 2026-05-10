@@ -1,20 +1,20 @@
 #!/bin/bash
-# stop_app.sh - Detener servicios de forma segura
 
-echo "[AEROMEXICO] Deteniendo servicios..."
+echo "[AEROMEXICO] Deteniendo servicios públicos..."
 
-# Detener contenedores por nombre
-containers=$(docker ps -aqf "name=aeromexico-app")
-if [ -n "$containers" ]; then
-    docker stop aeromexico-app
-    docker rm aeromexico-app
-    echo " Contenedor de Aplicación detenido."
+# Detener y eliminar Backend
+if [ -n "$(docker ps -aqf "name=publico-vuelos-backend")" ]; then
+    docker stop publico-vuelos-backend
+    docker rm publico-vuelos-backend
+    echo " Backend detenido y eliminado."
 fi
 
-if [ -n "$(docker ps -aqf "name=mongo-db")" ]; then
-    docker stop mongo-db
-    docker rm mongo-db
-    echo " Contenedor de MongoDB detenido."
+# Detener y eliminar Frontend
+if [ -n "$(docker ps -aqf "name=publico-vuelos-frontend")" ]; then
+    docker stop publico-vuelos-frontend
+    docker rm publico-vuelos-frontend
+    echo " Frontend detenido y eliminado."
 fi
 
-echo " Todos los procesos de Docker han sido finalizados."
+echo "------------------------------------------------"
+echo "Todos los servicios públicos han sido finalizados."

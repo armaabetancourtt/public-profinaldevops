@@ -8,14 +8,18 @@ services:
       dockerfile: Dockerfile
     container_name: publico-vuelos-backend
     restart: unless-stopped
+
     environment:
       PORT: 3000
-      # LOCAL: Usa la IP de tu máquina 
-      # AWS: Usa la IP Privada de la instancia EC2Priv
-      MONGO_URI: mongodb://host.docker.internal:27017/vuelos
+      MONGO_URI: mongodb://10.0.2.157:27017/vuelos
       NODE_ENV: production
+
     ports:
       - "3000:3000"
+
+    volumes:
+      - public_logs:/app/logs
+
     networks:
       - vuelos-net
 
@@ -26,15 +30,21 @@ services:
       dockerfile: Dockerfile
     container_name: publico-vuelos-frontend
     restart: unless-stopped
+
     environment:
-      # Muy importante: El front necesita saber dónde está el API
-      REACT_APP_API_URL: http://<IP_PUBLICA_O_LOCAL>:3000
+      REACT_APP_API_URL: http://44.196.169.146:3000
+
     ports:
       - "8080:80"
+
     depends_on:
       - backend
+
     networks:
       - vuelos-net
+
+volumes:
+  public_logs:
 
 networks:
   vuelos-net:
